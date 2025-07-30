@@ -6,6 +6,7 @@ import com.projectmanager.service.FileService;
 import com.projectmanager.util.FileStorageUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.apache.tika.Tika;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,8 +18,7 @@ import java.util.List;
 @Service
 public class FileServiceImpl implements FileService {
 
-
-
+    private final Tika tika = new Tika();
     private final FileRepository fileRepository;
     private final FileStorageUtil fileStorageUtil;
 
@@ -29,11 +29,12 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public void uploadFile(MultipartFile file, String parentId, String uploaderId) throws IOException {
+        String detectedType = tika.detect(file.getInputStream(), file.getOriginalFilename());
         String url = fileStorageUtil.store(file);
 
         FileItem item = new FileItem();
         item.setName(file.getOriginalFilename());
-        item.setType("file");
+        item.setType(detectedType);
         item.setSize(file.getSize());
         item.setUploadedBy(uploaderId);
         item.setUploadedAt(LocalDate.now());
