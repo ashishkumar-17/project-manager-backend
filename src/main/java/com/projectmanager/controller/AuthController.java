@@ -46,4 +46,14 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Login failed: " + e.getMessage());
         }
     }
+
+    @PutMapping("/logout/{userId}")
+    public ResponseEntity<?> logout(@PathVariable String userId){
+        try{
+            authService.logout(userId);
+            return ResponseEntity.ok("User Logout successfully");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body("Logout failed: " + e.getMessage());
+        }
+    }
 }

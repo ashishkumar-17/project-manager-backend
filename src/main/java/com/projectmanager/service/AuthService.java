@@ -8,4 +8,5 @@ public interface AuthService {
 
     void registerUser(User user);
     JwtAuthenticationResponse loginUser(LoginRequest request);
+    void logout(String userId);
 }

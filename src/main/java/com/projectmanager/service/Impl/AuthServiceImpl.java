@@ -14,6 +14,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.Optional;
+
 @Service
 public class AuthServiceImpl implements AuthService {
 
@@ -32,6 +35,7 @@ public class AuthServiceImpl implements AuthService {
 
     public void registerUser(User user){
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setLastSeen(LocalDate.now());
         userRepository.save(user);
     }
 
@@ -46,6 +50,9 @@ public class AuthServiceImpl implements AuthService {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new EntityNotFoundException("User does not exist."));
+        user.setOnline(true);
+        user.setLastSeen(LocalDate.now());
+        userRepository.save(user);
         return new JwtAuthenticationResponse(jwt,
                 user.getId(),
                 user.getEmail(),
@@ -56,11 +63,17 @@ public class AuthServiceImpl implements AuthService {
                 user.getTimezone());
     }
 
-    public boolean existsByEmail(String email) {
-        return userRepository.findByEmail(email).isPresent();
+    @Override
+    public void logout(String userId) {
+        Optional<User> user = userRepository.findById(userId);
+        user.ifPresent(u -> {
+            u.setLastSeen(LocalDate.now());
+            u.setOnline(false);
+        });
+        user.ifPresent(userRepository::save);
     }
 
-    public User findByEmail(String email) {
-        return userRepository.findByEmail(email).orElse(null);
+    public boolean existsByEmail(String email) {
+        return userRepository.findByEmail(email).isPresent();
     }
 }

@@ -49,7 +49,7 @@ public class IdGenerationServiceImpl implements IdGenerationService {
                 throw new RuntimeException("Failed to get counter value for entity: " + entityName);
             }
 
-            String generatedId = prefix + "-" + (counter + 1);
+            String generatedId = prefix + "-" + counter;
             logger.debug("Generated ID: {} for entity: {}", generatedId, entityName);
 
             return generatedId;
