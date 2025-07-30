@@ -1,7 +1,9 @@
 package com.projectmanager.service.Impl;
 
 import com.projectmanager.dto.LoginRequest;
+import com.projectmanager.dto.UserDTO;
 import com.projectmanager.entity.User;
+import com.projectmanager.mapper.UserMapper;
 import com.projectmanager.repository.UserRepository;
 import com.projectmanager.security.jwt.JwtAuthenticationResponse;
 import com.projectmanager.security.jwt.JwtUtils;
@@ -24,12 +26,21 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
+    private final UserMapper userMapper;
 
-    public AuthServiceImpl(PasswordEncoder passwordEncoder, UserRepository userRepository, AuthenticationManager authenticationManager, JwtUtils jwtUtils) {
+    public AuthServiceImpl(PasswordEncoder passwordEncoder, UserRepository userRepository, AuthenticationManager authenticationManager, JwtUtils jwtUtils, UserMapper userMapper) {
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
+        this.userMapper = userMapper;
+    }
+
+    public UserDTO getUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("user not found"));
+
+        return userMapper.toDTO(user);
     }
 
 
@@ -53,14 +64,7 @@ public class AuthServiceImpl implements AuthService {
         user.setOnline(true);
         user.setLastSeen(LocalDate.now());
         userRepository.save(user);
-        return new JwtAuthenticationResponse(jwt,
-                user.getId(),
-                user.getEmail(),
-                user.getUsername(),
-                user.getName(),
-                user.getRole().name(),
-                user.getAvatar(),
-                user.getTimezone());
+        return new JwtAuthenticationResponse(jwt);
     }
 
     @Override

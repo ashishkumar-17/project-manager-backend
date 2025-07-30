@@ -3,6 +3,7 @@ package com.projectmanager.controller;
 import com.projectmanager.dto.LoginRequest;
 import com.projectmanager.dto.RegisterRequest;
 import com.projectmanager.entity.User;
+import com.projectmanager.service.AuthService;
 import com.projectmanager.service.Impl.AuthServiceImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,10 +13,19 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
 
-    private final AuthServiceImpl authService;
+    private final AuthService authService;
 
     public AuthController(AuthServiceImpl authService) {
         this.authService = authService;
+    }
+
+    @GetMapping("/{email}")
+    public ResponseEntity<?> getUser(@PathVariable String email){
+        try{
+            return ResponseEntity.ok(authService.getUser(email));
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body("User not found: " + e.getMessage());
+        }
     }
 
     @PostMapping("/register")

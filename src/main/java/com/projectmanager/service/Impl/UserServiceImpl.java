@@ -4,6 +4,7 @@ import com.projectmanager.dto.PasswordUpdateRequest;
 import com.projectmanager.dto.UpdateProfileRequest;
 import com.projectmanager.dto.UserDTO;
 import com.projectmanager.entity.User;
+import com.projectmanager.mapper.UserMapper;
 import com.projectmanager.repository.UserRepository;
 import com.projectmanager.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,10 +24,12 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -37,7 +40,7 @@ public class UserServiceImpl implements UserService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setTimezone(request.getTimezone());
-        return UserDTO.from(userRepository.save(user));
+        return userMapper.toDTO(userRepository.save(user));
     }
 
     @Override
@@ -74,15 +77,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<User> getAllUser() {
+    public List<UserDTO> getAllUser() {
         return userRepository.findAll().stream()
+                .map(userMapper::toDTO)
                 .toList();
     }
-
-    @Override
-    public User getUser(String id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("user not found"));
-    }
-
 }

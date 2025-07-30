@@ -13,7 +13,5 @@ public interface UserService {
     void updatePassword(String userId, PasswordUpdateRequest request);
     String uploadAvatar(String userId, MultipartFile avatar);
 
-    List<User> getAllUser();
-
-    User getUser(String id);
+    List<UserDTO> getAllUser();
 }

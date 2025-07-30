@@ -68,13 +68,4 @@ public class UserController {
             return ResponseEntity.badRequest().body("Update failed: " + e.getMessage());
         }
     }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getUser(@PathVariable String id){
-        try{
-            return ResponseEntity.ok(userService.getUser(id));
-        }catch (Exception e){
-            return ResponseEntity.badRequest().body("User not found: " + e.getMessage());
-        }
-    }
 }
