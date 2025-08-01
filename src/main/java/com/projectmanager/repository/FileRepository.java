@@ -11,4 +11,6 @@ public interface FileRepository extends JpaRepository<FileItem, String> {
     List<FileItem> findByParentId(String parentId);
     List<FileItem> findByNameContainingIgnoreCaseAndParentId(String name, String parentId);
     List<FileItem> findByNameContainingIgnoreCaseAndParentIdIsNull(String name);
+
+    List<FileItem> findByParentIdIsNull();
 }

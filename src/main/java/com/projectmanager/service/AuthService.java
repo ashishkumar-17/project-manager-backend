@@ -7,7 +7,7 @@ import com.projectmanager.security.jwt.JwtAuthenticationResponse;
 
 public interface AuthService {
 
-    public UserDTO getUser(String email);
+    UserDTO getUser(String email);
     void registerUser(User user);
     JwtAuthenticationResponse loginUser(LoginRequest request);
     void logout(String userId);

@@ -8,6 +8,8 @@ import com.projectmanager.mapper.UserMapper;
 import com.projectmanager.repository.UserRepository;
 import com.projectmanager.service.R2StorageService;
 import com.projectmanager.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,9 +19,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class UserServiceImpl implements UserService {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     @Value("${cloudflare.r2.bucket}")
     private String bucket;
@@ -27,7 +32,7 @@ public class UserServiceImpl implements UserService {
     @Value("${cloudflare.r2.endpoint}")
     private String url;
 
-    // Maximum file size: 5MB
+    // Maximum file size: 5MB (before compression)
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
 
     // Allowed file types
@@ -79,12 +84,8 @@ public class UserServiceImpl implements UserService {
         // Validate file
         validateAvatarFile(avatar);
 
-        // Generate unique filename
-        String originalFilename = avatar.getOriginalFilename();
-        String extension = originalFilename != null && originalFilename.contains(".")
-                ? originalFilename.substring(originalFilename.lastIndexOf("."))
-                : "";
-        String fileName = "avatar_" + userId + "_" + UUID.randomUUID() + extension;
+        // Generate unique filename with .jpg extension (since compression converts to JPEG)
+        String fileName = "avatar_" + userId + "_" + UUID.randomUUID() + ".jpg";
 
         try {
             // Delete old avatar if exists (async, don't block upload)
@@ -92,11 +93,17 @@ public class UserServiceImpl implements UserService {
                 deleteOldAvatarAsync(user.getAvatar());
             }
 
-            // Single upload attempt - let S3Client handle retries
+            // Create a buffered input stream that supports mark/reset for better error handling
+            byte[] fileBytes = avatar.getBytes();
+            logger.debug("Original avatar size for user {}: {} bytes", userId, fileBytes.length);
+
+            java.io.ByteArrayInputStream bufferedStream = new java.io.ByteArrayInputStream(fileBytes);
+
+            // Upload with automatic compression (images will be compressed automatically)
             String avatarUrl = r2StorageService.uploadFile(
-                    "avatars/" + fileName,
-                    avatar.getInputStream(),
-                    avatar.getSize(),
+                    fileName,
+                    bufferedStream,
+                    fileBytes.length,
                     avatar.getContentType()
             );
 
@@ -104,11 +111,13 @@ public class UserServiceImpl implements UserService {
             user.setAvatar(avatarUrl);
             userRepository.save(user);
 
+            logger.info("Avatar uploaded successfully for user: {}", userId);
             return avatarUrl;
-
         } catch (IOException e) {
+            logger.error("Failed to read avatar file for user {}: {}", userId, e.getMessage());
             throw new RuntimeException("Failed to read avatar file: " + e.getMessage(), e);
         } catch (Exception e) {
+            logger.error("Failed to upload avatar for user {}: {}", userId, e.getMessage());
             throw new RuntimeException("Failed to upload avatar: " + e.getMessage(), e);
         }
     }
@@ -134,29 +143,37 @@ public class UserServiceImpl implements UserService {
     }
 
     private void deleteOldAvatarAsync(String avatarUrl) {
-        // Run deletion in background thread to not block upload
-        new Thread(() -> {
+        // Use CompletableFuture for better async handling
+        CompletableFuture.runAsync(() -> {
             try {
                 String oldKey = extractKeyFromUrl(avatarUrl);
                 if (oldKey != null) {
                     r2StorageService.deleteFile(oldKey);
+                    logger.debug("Successfully deleted old avatar: {}", oldKey);
                 }
             } catch (Exception e) {
-                System.err.println("Failed to delete old avatar: " + e.getMessage());
+                logger.warn("Failed to delete old avatar {}: {}", avatarUrl, e.getMessage());
             }
-        }).start();
+        }).exceptionally(throwable -> {
+            logger.error("Async deletion failed for avatar {}: {}", avatarUrl, throwable.getMessage());
+            return null;
+        });
     }
 
     private String extractKeyFromUrl(String url) {
         try {
-            // Extract key from URL format: publicBase/bucket/key
-            String[] parts = url.split("/");
-            if (parts.length >= 2) {
-                // Return the last two parts joined with "/"
-                return parts[parts.length - 2] + "/" + parts[parts.length - 1];
+            // Extract key from URL format: publicBase/key
+            String key = url.substring(url.lastIndexOf('/') + 1);
+
+            // Handle nested paths like "avatars/filename.jpg"
+            if (url.contains("/avatars/")) {
+                int avatarsIndex = url.indexOf("/avatars/");
+                key = url.substring(avatarsIndex + 1); // +1 to remove leading slash
             }
+
+            return key;
         } catch (Exception e) {
-            System.err.println("Failed to extract key from URL: " + url);
+            logger.error("Failed to extract key from URL: {}", url, e);
         }
         return null;
     }
