@@ -34,14 +34,7 @@ public class AuthController {
             if (authService.existsByEmail(request.getEmail())) {
                 return ResponseEntity.badRequest().body("Email already exists");
             }
-
-            User user = new User();
-            user.setEmail(request.getEmail());
-            user.setPassword(request.getPassword());
-            user.setUsername(request.getUsername());
-            user.setName(request.getName());
-
-            authService.registerUser(user);
+            authService.registerUser(request);
             return ResponseEntity.ok("User registered successfully");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Registration failed: " + e.getMessage());

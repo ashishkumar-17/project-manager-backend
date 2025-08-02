@@ -42,6 +42,15 @@ public class User {
         MEMBER
     }
 
+    public User(String name, String email, String username, String password, LocalDate lastSeen, boolean isOnline) {
+        this.name = name;
+        this.email = email;
+        this.username = username;
+        this.password = password;
+        this.lastSeen = lastSeen;
+        this.isOnline = isOnline;
+    }
+
     @PrePersist
     public void generateId() {
         if (this.id == null) {
@@ -127,7 +136,7 @@ public class User {
     }
 
     public void setRole(Role role) {
-        role = role;
+        this.role = role;
     }
 
     public List<Project> getProjects() {

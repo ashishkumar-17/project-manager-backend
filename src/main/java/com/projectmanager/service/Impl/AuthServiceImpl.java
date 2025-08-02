@@ -1,6 +1,7 @@
 package com.projectmanager.service.Impl;
 
 import com.projectmanager.dto.LoginRequest;
+import com.projectmanager.dto.RegisterRequest;
 import com.projectmanager.dto.UserDTO;
 import com.projectmanager.entity.User;
 import com.projectmanager.mapper.UserMapper;
@@ -13,7 +14,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -22,14 +22,12 @@ import java.util.Optional;
 @Service
 public class AuthServiceImpl implements AuthService {
 
-    private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final UserMapper userMapper;
 
-    public AuthServiceImpl(PasswordEncoder passwordEncoder, UserRepository userRepository, AuthenticationManager authenticationManager, JwtUtils jwtUtils, UserMapper userMapper) {
-        this.passwordEncoder = passwordEncoder;
+    public AuthServiceImpl(UserRepository userRepository, AuthenticationManager authenticationManager, JwtUtils jwtUtils, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
@@ -44,9 +42,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
-    public void registerUser(User user){
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setLastSeen(LocalDate.now());
+    public void registerUser(RegisterRequest request){
+        User user = userMapper.toEntity(request);
         userRepository.save(user);
     }
 
